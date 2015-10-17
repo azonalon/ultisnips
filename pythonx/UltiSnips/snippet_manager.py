@@ -106,6 +106,11 @@ class SnippetManager(object):
         self.register_snippet_source('ultisnips_files', UltiSnipsFileSource())
         self.register_snippet_source('added', self._added_snippets_source)
 
+        try:
+            self._ask_snippets = _vim.eval('g:UltiSnipsAskSnippets') != '0'
+        except vim.error:
+            self._ask_snippets = True
+
         enable_snipmate = '1'
         if _vim.eval("exists('g:UltiSnipsEnableSnipMate')") == '1':
             enable_snipmate = _vim.eval('g:UltiSnipsEnableSnipMate')
@@ -388,7 +393,6 @@ class SnippetManager(object):
         if not self._inner_state_up:
             return
         try:
-            _vim.command('silent doautocmd <nomodeline> User UltiSnipsExitLastSnippet')
             if self.expand_trigger != self.forward_trigger:
                 _vim.command('iunmap <buffer> %s' % self.forward_trigger)
                 _vim.command('sunmap <buffer> %s' % self.forward_trigger)
@@ -397,6 +401,7 @@ class SnippetManager(object):
             _vim.command('augroup UltiSnips')
             _vim.command('autocmd!')
             _vim.command('augroup END')
+            _vim.command('silent doautocmd <nomodeline> User UltiSnipsExitLastSnippet')
             self._inner_state_up = False
         except _vim.error:
             # This happens when a preview window was opened. This issues
@@ -696,7 +701,10 @@ class SnippetManager(object):
         if len(snippets) == 1:
             snippet = snippets[0]
         else:
-            snippet = _ask_snippets(snippets)
+            if self._ask_snippets:
+                snippet = _ask_snippets(snippets)
+            else:
+                snippet = snippets[0]
             if not snippet:
                 return True
         self._do_snippet(snippet, before)
